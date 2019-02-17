@@ -1,10 +1,15 @@
-const express = require('express')
-const mongoose = require('mongoose')
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
 
-const app = express()
+const app = express();
+
+// Paras as requisições real time
+const server =require('http').Server(app); // Para extrair o servidor http que criou no express.
+const io = require('socket.io')(server);
 
 // Mongoose
-mongoose.Promise = global.Promise
+mongoose.Promise = global.Promise;
 mongoose
   .connect(
     'mongodb://localhost/twitterapp',
@@ -13,16 +18,26 @@ mongoose
     }
   )
   .then(() => {
-    console.log('Conectado ao mongodb.')
+    console.log('Conectado ao mongodb.');
   })
   .catch(err => {
-    console.log('Erro ao se conectar no mongodb: ' + err)
-  });s
+    console.log('Erro ao se conectar no mongodb: ' + err);
+  });
 
-app.get('/', (req, res) => {
-  return res.send('Home!')
+//Middleware
+app.use((req, res, next) => {
+  req.io = io;
+
+  return next();
 })
 
-app.listen(8081, () => {
+// Se o backend permite ou não outras apps acessarem as informações.
+app.use(cors()); 
+
+// Rotas
+app.use(express.json());
+app.use(require('./routes'));
+
+server.listen(8081, () => {
   console.log('Server started on port 8081')
 })
