@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import api from '../services/api'
+import socket from 'socket.io-client'
 
 import twitterLogo from '../twitter.svg'
 import './Timeline.css'
@@ -13,9 +14,27 @@ export default class Timeline extends Component {
   }
 
   async componentDidMount () {
+    this.subscribeToEvents()
+
     const response = await api.get('tweets')
 
     this.setState({ tweets: response.data })
+  }
+
+  subscribeToEvents = () => {
+    const io = socket('http://localhost:8081')
+
+    io.on('tweet', data => {
+      this.setState({ tweets: [data, ...this.state.tweets] })
+    })
+
+    io.on('like', data => {
+      this.setState({
+        tweets: this.state.tweets.map(tweet =>
+          tweet._id == data._id ? data : tweet
+        )
+      })
+    })
   }
 
   handleNewTweet = async e => {
@@ -49,7 +68,7 @@ export default class Timeline extends Component {
           />
         </form>
 
-        <ul className="tweet-list">
+        <ul className='tweet-list'>
           {this.state.tweets.map(tweet => (
             <Tweet key={tweet._id} tweet={tweet} />
           ))}
